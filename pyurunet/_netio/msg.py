@@ -22,6 +22,7 @@ from asyncio.exceptions import CancelledError
 import codecs
 from dataclasses import dataclass
 import io
+import inspect
 import logging
 import secrets
 import sys
@@ -220,7 +221,11 @@ class NetStructDispatcher(abc.ABC):
 
             handler = self.incoming_handlers.get(header.msg_id, self.handle_incoming)
             try:
-                handler(header.msg_id, actual_netmsg)
+                self.log.debug(f"Dispatching {header.msg_id:02X} to {handler}")
+                dispatch_result = handler(header.msg_id, actual_netmsg)
+                if asyncio.iscoroutine(dispatch_result):
+                    # Be very careful about doing this, or you may deadlock the loop.
+                    await dispatch_result
             except CancelledError:
                 raise
             except Exception as e:

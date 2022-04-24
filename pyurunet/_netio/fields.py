@@ -55,6 +55,36 @@ tiny_buffer = _net_field(lambda fd, size: _read_buffer(fd, size, 1024), _write_b
 medium_buffer = _net_field(lambda fd, size: _read_buffer(fd, size, 1024 * 1024), _write_buffer)
 big_buffer = _net_field(lambda fd, size: _read_buffer(fd, size, 10 * 1024 * 1024), _write_buffer)
 
+async def _read_char16_blob(fd, size: int) -> str:
+    buf = await fd.readexactly(size * 2)
+    decoded = buf.decode("utf-16-le", errors="replace")
+    return decoded.rstrip('\0')
+
+def _write_char16_blob(fd, size: int, value: Optional[str]) -> None:
+    if value is None:
+        value = ""
+    buf = value[:size - 1].encode("utf-16-le", errors="replace")
+    buf = buf + bytes((size * 2) - len(buf))
+    fd.write(buf)
+
+char16_blob = _net_field(_read_char16_blob, _write_char16_blob)
+
+async def _read_char16_buffer(fd, size: int) -> bytes:
+    size = await _read_integer(fd, size)
+    if size == 0:
+        return bytes()
+    return await fd.readexactly(size * 2)
+
+def _write_char16_buffer(fd, size: int, value: bytes) -> None:
+    if value is None:
+        value = bytes()
+    bufsz = len(value)
+    _write_integer(fd, size, bufsz // 2)
+    if value:
+        fd.write(value)
+
+char16_buffer = _net_field(_read_char16_buffer, _write_char16_buffer)
+
 async def _read_integer(fd, size: int) -> int:
     if size == 1:
         p = "<B"

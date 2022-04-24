@@ -15,5 +15,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .authcli import *
+from .filecli import *
 from .gatecli import *
 from ._netio.errors import *

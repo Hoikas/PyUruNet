@@ -173,9 +173,9 @@ class AuthCli(_netio.NetClient):
     async def ping(self) -> None:
         ts = int(time.monotonic())
         ping = _netio.msg.NetMessage(_msg.ping_pong, ping_time=ts, payload=b"fart\0")
-        self.log.debug(f"PING: {ts}?")
+        self.log.debug(f"AUTH PING: {ts}?")
         pong = await self.send_transaction(_msg.C2A.PingRequest, ping)
-        self.log.debug(f"PONG: {pong.ping_time}!")
+        self.log.debug(f"AUTH PONG: {pong.ping_time}!")
 
     async def vault_fetch_node(self, node_id: int):
         req = _netio.msg.NetMessage(_msg.vault_node_fetch_request, node_id=node_id)

@@ -190,7 +190,7 @@ connection_header = (
 ping_pong = (
     (fields.integer, "trans_id", 4),
     (fields.integer, "ping_time", 4),
-    (fields.tiny_buffer, "payload", 4),
+    (fields.tiny_buffer, "payload", 1),
 )
 
 server_addr = (
@@ -232,6 +232,16 @@ player_info = (
     (fields.integer, "explorer", 4),
 )
 
+vault_node_refs_fetch_request = (
+    (fields.integer, "trans_id", 4),
+    (fields.integer, "node_id", 4),
+)
+vault_node_refs_fetch_reply = (
+    (fields.integer, "trans_id", 4),
+    (fields.integer, "result", 4),
+    (fields.medium_buffer, "buffer", 13),
+)
+
 vault_node_fetch_request = (
     (fields.integer, "trans_id", 4),
     (fields.integer, "node_id", 4),
@@ -239,12 +249,22 @@ vault_node_fetch_request = (
 vault_node_fetch_reply = (
     (fields.integer, "trans_id", 4),
     (fields.integer, "result", 4),
-    (fields.medium_buffer, "node_data", 4),
+    (fields.medium_buffer, "node_data", 1),
+)
+
+vault_node_remove_request = (
+    (fields.integer, "trans_id", 4),
+    (fields.integer, "parent_id", 4),
+    (fields.integer, "child_id", 4),
+)
+vault_node_remove_reply = (
+    (fields.integer, "trans_id", 4),
+    (fields.integer, "result", 4),
 )
 
 vault_node_find_request = (
     (fields.integer, "trans_id", 4),
-    (fields.tiny_buffer, "template_node", 4),
+    (fields.tiny_buffer, "template_node", 1),
 )
 vault_node_find_reply = (
     (fields.integer, "trans_id", 4),

@@ -35,7 +35,8 @@ def _write_blob(fd, size: int, data: bytes):
 blob = _net_field(_read_blob, _write_blob)
 
 async def _read_buffer(fd, size, maxsize):
-    bufsz = await _read_integer(fd, size)
+    bufsz = await _read_integer(fd, 4)
+    bufsz *= size
     if bufsz > maxsize:
         # somehow signal that the client needs to be booted
         pass
@@ -44,7 +45,7 @@ async def _read_buffer(fd, size, maxsize):
 
 def _write_buffer(fd, size, value: Optional[bytes]):
     if value:
-        _write_integer(fd, size, len(value))
+        _write_integer(fd, 4, len(value) // size)
         fd.write(value)
     else:
         _write_integer(fd, size, 0)
@@ -68,22 +69,6 @@ def _write_char16_blob(fd, size: int, value: Optional[str]) -> None:
     fd.write(buf)
 
 char16_blob = _net_field(_read_char16_blob, _write_char16_blob)
-
-async def _read_char16_buffer(fd, size: int) -> bytes:
-    size = await _read_integer(fd, size)
-    if size == 0:
-        return bytes()
-    return await fd.readexactly(size * 2)
-
-def _write_char16_buffer(fd, size: int, value: bytes) -> None:
-    if value is None:
-        value = bytes()
-    bufsz = len(value)
-    _write_integer(fd, size, bufsz // 2)
-    if value:
-        fd.write(value)
-
-char16_buffer = _net_field(_read_char16_buffer, _write_char16_buffer)
 
 async def _read_integer(fd, size: int) -> int:
     if size == 1:

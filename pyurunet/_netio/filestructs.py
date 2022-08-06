@@ -67,7 +67,7 @@ manifest_reply = (
     (fields.integer, "result", 4),
     (fields.integer, "reader_id", 4),
     (fields.integer, "file_count", 4),
-    (fields.char16_buffer, "buffer", 4),
+    (fields.medium_buffer, "buffer", 2),
 )
 manifest_ack = (
     (fields.integer, "trans_id", 4),

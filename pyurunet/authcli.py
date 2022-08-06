@@ -22,8 +22,9 @@ import io
 import re
 import pprint
 import secrets
+import struct
 import time
-from typing import List, Optional, Sequence
+from typing import Iterable, List, NamedTuple, Optional, Sequence
 import uuid
 
 from . import _netio
@@ -53,6 +54,13 @@ class LoginResult:
     players: List[Player]
 
 
+class VaultNodeRef(NamedTuple):
+    parent_id: int
+    child_id: int
+    saver_id: int
+    seen: Optional[bool]
+
+
 class AuthCli(_netio.NetClient):
     def __init__(self):
         super().__init__()
@@ -63,7 +71,9 @@ class AuthCli(_netio.NetClient):
             _msg.A2C.AcctLoginReply: _msg.login_reply,
             _msg.A2C.AcctPlayerInfo: _msg.player_info,
             _msg.A2C.KickedOff: _msg.kicked_off,
+            _msg.A2C.VaultNodeRefsFetched: _msg.vault_node_refs_fetch_reply,
             _msg.A2C.VaultNodeFetched: _msg.vault_node_fetch_reply,
+            _msg.A2C.VaultRemoveNodeReply: _msg.vault_node_remove_reply,
             _msg.A2C.VaultNodeFindReply: _msg.vault_node_find_reply,
         }
         self.incoming_handlers = {
@@ -183,8 +193,41 @@ class AuthCli(_netio.NetClient):
         reply = await self.send_transaction(_msg.C2A.VaultNodeFetch, req)
         return reply.node_data
 
+    async def vault_fetch_node_refs(self, node_id: int) -> Sequence[VaultNodeRef]:
+        req = _netio.msg.NetMessage(
+            _msg.vault_node_refs_fetch_request,
+            node_id=node_id
+        )
+        self.log.debug(f"Requesting vault tree for node {node_id}...")
+        reply = await self.send_transaction(_msg.C2A.VaultFetchNodeRefs, req)
+
+        mystruct = struct.Struct("<I")
+        stream = io.BytesIO(reply.buffer)
+        size = len(reply.buffer)
+
+        # The "seen" field is junk on MOULa, so filter that out.
+        seen_LUT = { 0: False, 1: True }
+        result = []
+        while stream.tell() < size:
+            result.append(VaultNodeRef(
+                mystruct.unpack(stream.read(4))[0],
+                mystruct.unpack(stream.read(4))[0],
+                mystruct.unpack(stream.read(4))[0],
+                seen_LUT.get(stream.read(1))
+            ))
+        return result
+
     async def vault_find_node(self, template: bytes) -> Sequence[int]:
         req = _netio.msg.NetMessage(_msg.vault_node_find_request, template_node=template)
         self.log.debug(f"Sending vault node find of length {len(template)}")
         reply = await self.send_transaction(_msg.C2A.VaultNodeFind, req)
         return reply.node_ids
+
+    async def vault_remove_node(self, parent_id: int, child_id: int) -> None:
+        req = _netio.msg.NetMessage(
+            _msg.vault_node_remove_request,
+            parent_id=parent_id,
+            child_id=child_id
+        )
+        self.log.debug(f"Sending vault node remove request for reference {parent_id} -> {child_id}")
+        await self.send_transaction(_msg.C2A.VaultNodeRemove, req)
